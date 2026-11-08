@@ -5,11 +5,7 @@ thinking, writing a reply, reading files, searching, editing, running commands, 
 sending a subagent, hitting an error, finishing a turn, and dozing off after 90 seconds idle.
 The file, command or query in progress shows beside it.
 
-```
-  ▄▄▄▄▄▄      ┌───┐  Reading 3s  · ∘ ○
-▄▄█▄██▄█▄▄    │≡≡≡│  register.tsx
-  █▀██▀█      └───┘
-```
+![Clawd reading, searching, editing, running a command, finishing and dozing off](assets/crab-buddy.gif)
 
 - It shows from session start; `/crab` hides it or brings it back (ctrl+x ctrl+a collapses the band too).
 - It never blocks or changes a tool call.
