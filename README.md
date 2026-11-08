@@ -1,6 +1,6 @@
 # crab-buddy
 
-Clawd, the Claude Code crab, sits in the band just above the prompt and acts out what Claude is doing:
+**Meet your crab buddy, in your terminal.** Clawd, Claude Code's mascot, sits in the band just above the prompt and acts out what Claude is doing:
 thinking, writing a reply, reading files, searching, editing, running commands, browsing the web,
 sending a subagent, hitting an error, finishing a turn, and dozing off after 90 seconds idle.
 The file, command or query in progress shows beside it.
@@ -32,3 +32,9 @@ In the desktop app: click + next to the prompt box, then Plugins, Add marketplac
 ## License
 
 MIT
+
+---
+
+Unofficial fan project, not affiliated with or endorsed by Anthropic. Clawd is Claude Code's mascot.
+
+[Play with the demo in your browser →](https://yanonymousv2.github.io/yeshasvi/crab-buddy/#demo)
