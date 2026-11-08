@@ -1,0 +1,7 @@
+{
+  "name": "crab-buddy",
+  "version": "0.1.0",
+  "description": "An animated Claude crab that sits above the prompt and acts out what Claude is doing: thinking, reading, editing, running, and more",
+  "author": { "name": "yanonymousV2" },
+  "license": "MIT"
+}
