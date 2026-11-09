@@ -265,10 +265,10 @@ const H = 6
 const drawCrab = (look: Look): string[] => {
   const px = Array.from({ length: H }, () => Array<boolean>(W).fill(false))
   const top = look.hop ? 0 : 1
-  const fill = (row: number, from: number, to: number, on = true) => {
+  const fill = (row: number, from: number, to: number, isLit = true) => {
     const line = px[top + row]
     if (!line) return
-    for (let col = from; col <= to; col++) line[col] = on
+    for (let col = from; col <= to; col++) line[col] = isLit
   }
 
   for (let row = 0; row < 4; row++) fill(row, 2, 7)
@@ -366,15 +366,17 @@ export const register: Register = (on, options) => {
     return ran
   }).catch(($, e, next) => next(e))
 
-  // A permission prompt: the call waits on the person until they answer.
-  on('tool.check', async ($, e, next) => {
-    const verdict = await next(e)
-    if (verdict.decision === 'ask') {
-      waitingFor = e.tool_use_id ?? e.tool
-      setMode('waiting', `may I use ${e.tool}?`)
+  // A permission prompt: the engine's notification says the newest call is
+  // waiting on the person. The crab only watches; the decision stays theirs.
+  on('classic.Notification', ($, e, next) => {
+    const asking = [...running.keys()].pop()
+    if (e.notification_type === 'permission_prompt' && asking !== undefined) {
+      waitingFor = asking
+      const tool = /use (\S+)/.exec(e.message)?.[1]
+      setMode('waiting', tool ? `may I use ${tool}?` : 'may I go ahead?')
     }
 
-    return verdict
+    return next(e)
   }).catch(($, e, next) => next(e))
 
   // The run-in-background hint shows only once a call is running, so a call

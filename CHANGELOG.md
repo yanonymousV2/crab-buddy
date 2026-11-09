@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-11-09
+
+### Changed
+- "Waiting for you" now comes from the permission prompt's notification instead of a permission-check hook, so the mod never takes part in a permission decision.
+- README lists what each hook does.
+
 ## 0.2.0 — 2026-11-09
 
 ### Added

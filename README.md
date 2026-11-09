@@ -28,6 +28,22 @@ The file, command or query in progress shows beside him.
 - `/crab` hides him or brings him back (ctrl+x ctrl+a collapses the band too).
 - He never blocks or changes a tool call, and a failure in the mod leaves the tool running as usual.
 
+## What the hooks do
+
+crab-buddy only watches. Every hook passes the event on unchanged, and it makes no network calls and stores nothing.
+
+| Hook | What it does |
+|---|---|
+| `session.start` | registers `/crab` and starts the 300 ms animation timer |
+| `command.run` (`/crab` only) | toggles the crab; no other command is touched |
+| `turn.start`, `turn.step` | notes that Claude is thinking or writing a reply |
+| `tool.call` | notes which tool is running and its file, command or query; the call itself runs as made |
+| `classic.Notification` | on a permission prompt notification, shows "Waiting for you"; it makes no permission decision, which stays with you |
+| `ui.render` (`ToolProgress`) | sees that an allowed command has started, and goes back to "Running" |
+| `session.compact` | shows "Compacting" while the conversation is summarized |
+| `turn.complete` | shows "Done" |
+| `ui.render` (`AbovePrompt`) | draws the crab in the band above the prompt |
+
 ## Settings
 
 Change these in `/plugin` (crab-buddy → configure) or the config menu:
