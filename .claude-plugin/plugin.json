@@ -1,6 +1,6 @@
 {
   "name": "crab-buddy",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "An animated Claude crab that sits above the prompt and acts out what Claude is doing: thinking, reading, editing, running, waiting for you, and more",
   "author": {
     "name": "yanonymousV2"

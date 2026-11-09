@@ -19,7 +19,7 @@ The file, command or query in progress shows beside him.
 | running a command | walks back and forth with `>_`, and slumps and yawns if it runs past 20 seconds |
 | browsing the web | watches a spinning globe |
 | sending subagents | raises his claws; shows `3 helpers out` when several run at once |
-| **waiting for you** (a permission prompt, a question, a plan to approve) | waves both claws, `hey!`, until you answer |
+| **waiting for you** (a question or a plan to approve) | waves both claws, `hey!`, until you answer |
 | compacting the conversation | squashes flat and springs back |
 | hitting an error | `Oops`, eyes shut |
 | done | jumps with sparkles |
@@ -38,8 +38,6 @@ crab-buddy only watches. Every hook passes the event on unchanged, and it makes 
 | `command.run` (`/crab` only) | toggles the crab; no other command is touched |
 | `turn.start`, `turn.step` | notes that Claude is thinking or writing a reply |
 | `tool.call` | notes which tool is running and its file, command or query; the call itself runs as made |
-| `classic.Notification` | on a permission prompt notification, shows "Waiting for you"; it makes no permission decision, which stays with you |
-| `ui.render` (`ToolProgress`) | sees that an allowed command has started, and goes back to "Running" |
 | `session.compact` | shows "Compacting" while the conversation is summarized |
 | `turn.complete` | shows "Done" |
 | `ui.render` (`AbovePrompt`) | draws the crab in the band above the prompt |

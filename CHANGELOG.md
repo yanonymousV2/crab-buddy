@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2 — 2026-11-09
+
+### Removed
+- "Waiting for you" on a permission prompt. Claude Code hides the band above the prompt while the permission dialog is up, so the wave could never be seen. He still waves for a question or a plan to approve.
+
 ## 0.2.1 — 2026-11-09
 
 ### Changed

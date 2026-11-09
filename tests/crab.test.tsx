@@ -46,45 +46,6 @@ test('a running Read shows Reading and the file, on every surface', async ($, on
   await running
 })
 
-test('a permission prompt shows Waiting for you, until the command starts', async ($, on) => {
-  const call = held()
-  on('tool.call', () => call.done)
-  on('classic.Notification', () => ({}))
-  // The engine's own drawing of the hint, beneath the plugin.
-  on('ui.render', ($, e) => {
-    const { Text } = $.ui.resolve(e)
-    return <Text>engine</Text>
-  })
-
-  const running = $.tool.call({ tool: 'Bash', command: 'npm test', tool_use_id: 'b1' } as never)
-  await $.classic.Notification({
-    message: 'Claude needs your permission to use Bash',
-    notification_type: 'permission_prompt',
-  } as never)
-
-  let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await ui.find({ type: 'Text', text: /Waiting for you/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /may I use Bash/ })).toBeTruthy()
-  await ui.unmount()
-
-  // The run-in-background hint appears only once the command runs.
-  const hint = await $.ui.mount({
-    plugin: 'crab-buddy',
-    surface: 'terminal',
-    component: 'ToolProgress',
-    props: { tool_use_id: 'b1', kind: 'background_hint', hint: '(ctrl+b to run in background)' },
-  })
-  await hint.unmount()
-
-  ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await ui.find({ type: 'Text', text: /Waiting for you/ })).toBeFalsy()
-  expect(await ui.find({ type: 'Text', text: /Running/ })).toBeTruthy()
-  await ui.unmount()
-
-  call.finish()
-  await running
-})
-
 test('a question for the person shows Waiting for you', async ($, on) => {
   const call = held()
   on('tool.call', () => call.done)

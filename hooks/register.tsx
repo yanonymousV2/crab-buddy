@@ -366,31 +366,6 @@ export const register: Register = (on, options) => {
     return ran
   }).catch(($, e, next) => next(e))
 
-  // A permission prompt: the engine's notification says the newest call is
-  // waiting on the person. The crab only watches; the decision stays theirs.
-  on('classic.Notification', ($, e, next) => {
-    const asking = [...running.keys()].pop()
-    if (e.notification_type === 'permission_prompt' && asking !== undefined) {
-      waitingFor = asking
-      const tool = /use (\S+)/.exec(e.message)?.[1]
-      setMode('waiting', tool ? `may I use ${tool}?` : 'may I go ahead?')
-    }
-
-    return next(e)
-  }).catch(($, e, next) => next(e))
-
-  // The run-in-background hint shows only once a call is running, so a call
-  // that was waiting on the person has been allowed.
-  on('ui.render', { component: 'ToolProgress' }, ($, e, next) => {
-    if (waitingFor !== undefined && e.props.tool_use_id === waitingFor) {
-      waitingFor = undefined
-      const what = running.get(e.props.tool_use_id)
-      setMode(what?.mode ?? 'running', what?.detail ?? '')
-    }
-
-    return next(e)
-  })
-
   on('session.compact', async ($, e, next) => {
     if (e.agentId !== undefined) return next(e)
     setMode('compacting', 'summarizing the conversation')
