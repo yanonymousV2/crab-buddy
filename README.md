@@ -5,7 +5,7 @@ The file, command or query in progress shows beside him.
 
 ![Clawd reading, sending three helpers, waving at a question for you, editing, yawning through a long build, finishing, compacting and dozing off](assets/crab-buddy.gif)
 
-[Play with the demo in your browser →](https://yanonymousv2.github.io/yeshasvi/crab-buddy/#demo)
+[Play with the demo in your browser →](https://yanonymousv2.github.io/yeshasvi/crab-buddy/#demo) · [How it's built →](https://yanonymousv2.github.io/yeshasvi/blog/building-crab-buddy/)
 
 ## What he does
 
