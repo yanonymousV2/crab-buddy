@@ -3,7 +3,7 @@
 **Meet your crab buddy, in your terminal.** Clawd, Claude Code's mascot, sits in the band just above the prompt and acts out what Claude is doing.
 The file, command or query in progress shows beside him.
 
-![Clawd reading, searching, editing, running a command, finishing and dozing off](assets/crab-buddy.gif)
+![Clawd reading, sending three helpers, waving at a question for you, editing, yawning through a long build, finishing, compacting and dozing off](assets/crab-buddy.gif)
 
 [Play with the demo in your browser →](https://yanonymousv2.github.io/yeshasvi/crab-buddy/#demo)
 
