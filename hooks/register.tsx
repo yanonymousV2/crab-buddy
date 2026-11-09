@@ -1,9 +1,16 @@
 import type { Register } from 'claude-code'
 
-const CRAB = '#D97757'
 const FRAME_MS = 300
-// After this long with nothing happening the crab dozes off.
-const SLEEP_AFTER_MS = 90_000
+// A command running longer than this gets a bored crab.
+const BORED_AFTER_MS = 20_000
+
+const COLORS: Record<string, string> = {
+  orange: '#D97757',
+  blue: '#6A9BD8',
+  green: '#7BC47F',
+  purple: '#B48EF0',
+  pink: '#E88AB5',
+}
 
 type Mode =
   | 'idle'
@@ -16,6 +23,8 @@ type Mode =
   | 'running'
   | 'browsing'
   | 'delegating'
+  | 'waiting'
+  | 'compacting'
   | 'oops'
   | 'done'
 
@@ -40,9 +49,13 @@ const CAPTION: Record<Mode, string> = {
   running: 'Running',
   browsing: 'Browsing the web',
   delegating: 'Sending a helper',
+  waiting: 'Waiting for you',
+  compacting: 'Compacting',
   oops: 'Oops',
   done: 'Done!',
 }
+
+type Doing = { mode: Mode; detail: string }
 
 // Module state: a reload starts the crab over at idle, which is fine.
 let mode: Mode = 'idle'
@@ -50,7 +63,9 @@ let detail = ''
 let changedAt = Date.now()
 let tick = 0
 let isHidden = false
-const running = new Map<string, { mode: Mode; detail: string }>()
+// The call a permission prompt or question is holding, while one is.
+let waitingFor: string | undefined
+const running = new Map<string, Doing>()
 
 const setMode = (next: Mode, nextDetail = '') => {
   if (next === mode && nextDetail === detail) return
@@ -58,6 +73,15 @@ const setMode = (next: Mode, nextDetail = '') => {
   detail = nextDetail
   changedAt = Date.now()
 }
+
+// What the crab shows once nothing holds it: the newest call still running.
+const settle = (fallback: Mode = 'thinking') => {
+  const left = [...running.values()].pop()
+  if (left) setMode(left.mode, left.detail)
+  else setMode(fallback)
+}
+
+const helpers = () => [...running.values()].filter(one => one.mode === 'delegating').length
 
 const short = (text: string, room: number) => {
   const one = text.replace(/\s+/g, ' ').trim()
@@ -71,7 +95,7 @@ const field = (e: object, name: string): string => {
   return typeof value === 'string' ? value : ''
 }
 
-const forTool = (tool: string, e: object): { mode: Mode; detail: string } => {
+const forTool = (tool: string, e: object): Doing => {
   switch (tool) {
     case 'Read':
     case 'NotebookRead':
@@ -97,6 +121,10 @@ const forTool = (tool: string, e: object): { mode: Mode; detail: string } => {
     case 'Agent':
     case 'Task':
       return { mode: 'delegating', detail: field(e, 'description') }
+    case 'AskUserQuestion':
+      return { mode: 'waiting', detail: 'a question for you' }
+    case 'ExitPlanMode':
+      return { mode: 'waiting', detail: 'a plan to approve' }
     default:
       return { mode: 'running', detail: tool.replace(/^mcp__/, '').replace(/__/g, ' · ') }
   }
@@ -111,7 +139,7 @@ const pace = (t: number, max: number) => {
   return at <= max ? at : max * 2 - at
 }
 
-const lookFor = (m: Mode, t: number): Look => {
+const lookFor = (m: Mode, t: number, isBored: boolean): Look => {
   const still: Look = {
     eyes: blinking(t),
     arms: 'out',
@@ -169,14 +197,23 @@ const lookFor = (m: Mode, t: number): Look => {
         prop: ['', cycle(t, ['✎ ▁', '✎▁▁', ' ✎▁▁▁', '  ✎▁▁▁▁']), ''],
       }
     case 'running':
-      return {
-        ...still,
-        eyes: 'open',
-        legs: cycle(t, ['stepA', 'stepB']),
-        hop: t % 2 === 0,
-        shift: pace(t, 5),
-        prop: ['', cycle(t, ['>_', '>_▌', '>_']), ''],
-      }
+      // A long command: he stops pacing, slumps and yawns.
+      return isBored
+        ? {
+            ...still,
+            eyes: t % 10 < 4 ? 'shut' : 'open',
+            arms: 'down',
+            bubble: cycle(t >> 2, ['…', '', 'yawn', '']),
+            prop: ['', cycle(t, ['>_', '>_▌']), ''],
+          }
+        : {
+            ...still,
+            eyes: 'open',
+            legs: cycle(t, ['stepA', 'stepB']),
+            hop: t % 2 === 0,
+            shift: pace(t, 5),
+            prop: ['', cycle(t, ['>_', '>_▌', '>_']), ''],
+          }
     case 'browsing':
       return {
         ...still,
@@ -188,6 +225,24 @@ const lookFor = (m: Mode, t: number): Look => {
         ...still,
         arms: 'up',
         bubble: cycle(t, ['→', ' →', '  →', '   ▝▜▛▘']),
+      }
+    case 'waiting':
+      // Waving at you, both arms in turn, until you answer.
+      return {
+        ...still,
+        eyes: blinking(t),
+        arms: cycle(t, ['up', 'wave']),
+        hop: t % 6 === 0,
+        bubble: cycle(t >> 1, ['hey!', 'hey!', '', '']),
+      }
+    case 'compacting':
+      // Squashed flat, then springing back, as the conversation is summarized.
+      return {
+        ...still,
+        eyes: t % 4 < 2 ? 'shut' : 'open',
+        arms: 'down',
+        legs: t % 4 < 2 ? 'tuck' : 'stand',
+        bubble: cycle(t >> 1, ['⇊', '⇊ ⇊', '⇊ ⇊ ⇊']),
       }
     case 'oops':
       return { ...still, eyes: 'shut', arms: 'up', bubble: '!' }
@@ -246,14 +301,18 @@ const drawCrab = (look: Look): string[] => {
   return rows
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  const crabColor = COLORS[String(options.color)] ?? COLORS.orange!
+  const sleepAfterMs = Math.max(10, Number(options.sleepAfterSeconds) || 90) * 1000
+  const showStatus = options.showStatus !== false
+
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'crab',
       description: 'Show or hide the crab above the prompt',
     })
     $.clock.every(FRAME_MS, () => {
-      if (mode === 'idle' && Date.now() - changedAt > SLEEP_AFTER_MS) {
+      if (mode === 'idle' && Date.now() - changedAt > sleepAfterMs) {
         setMode('sleeping')
       }
       if ((mode === 'done' || mode === 'oops') && Date.now() - changedAt > 4000) {
@@ -281,9 +340,10 @@ export const register: Register = on => {
   on('turn.step', async function* ($, e, next) {
     // Only the main thread's model stream drives the crab; a subagent's
     // tool calls still show through tool.call.
-    if (e.agentId === undefined && running.size === 0) setMode('thinking')
+    const isFree = () => e.agentId === undefined && running.size === 0 && !waitingFor
+    if (isFree()) setMode('thinking')
     for await (const chunk of next(e)) {
-      if (e.agentId === undefined && running.size === 0) {
+      if (isFree()) {
         if (chunk.kind === 'thinking') setMode('thinking')
         else if (chunk.kind === 'text') setMode('talking')
       }
@@ -294,19 +354,54 @@ export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     const what = forTool(e.tool, e)
     running.set(e.tool_use_id, what)
-    setMode(what.mode, what.detail)
+    if (!waitingFor) setMode(what.mode, what.detail)
+    if (what.mode === 'waiting') waitingFor = e.tool_use_id
     const ran = await next(e)
     running.delete(e.tool_use_id)
-    const left = [...running.values()].pop()
-    if (left) setMode(left.mode, left.detail)
-    else if (ran.deny === undefined && ran.isError === true) setMode('oops', e.tool)
-    else setMode('thinking')
+    if (waitingFor === e.tool_use_id) waitingFor = undefined
+    if (waitingFor) return ran
+    if (running.size === 0 && ran.deny === undefined && ran.isError === true) setMode('oops', e.tool)
+    else settle()
 
     return ran
   }).catch(($, e, next) => next(e))
 
+  // A permission prompt: the call waits on the person until they answer.
+  on('tool.check', async ($, e, next) => {
+    const verdict = await next(e)
+    if (verdict.decision === 'ask') {
+      waitingFor = e.tool_use_id ?? e.tool
+      setMode('waiting', `may I use ${e.tool}?`)
+    }
+
+    return verdict
+  }).catch(($, e, next) => next(e))
+
+  // The run-in-background hint shows only once a call is running, so a call
+  // that was waiting on the person has been allowed.
+  on('ui.render', { component: 'ToolProgress' }, ($, e, next) => {
+    if (waitingFor !== undefined && e.props.tool_use_id === waitingFor) {
+      waitingFor = undefined
+      const what = running.get(e.props.tool_use_id)
+      setMode(what?.mode ?? 'running', what?.detail ?? '')
+    }
+
+    return next(e)
+  })
+
+  on('session.compact', async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
+    setMode('compacting', 'summarizing the conversation')
+    try {
+      return await next(e)
+    } finally {
+      settle('idle')
+    }
+  }).catch(($, e, next) => next(e))
+
   on('turn.complete', ($, e, next) => {
     running.clear()
+    waitingFor = undefined
     setMode('done')
     return next(e)
   })
@@ -315,10 +410,13 @@ export const register: Register = on => {
     if (isHidden || e.props.hasSurvey) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
-    const look = lookFor(mode, tick)
-    const elapsed = Math.round((Date.now() - changedAt) / 1000)
+    const elapsedMs = Date.now() - changedAt
+    const look = lookFor(mode, tick, elapsedMs > BORED_AFTER_MS)
+    const elapsed = Math.round(elapsedMs / 1000)
+    const out = helpers()
+    const what = mode === 'delegating' && out > 1 ? `${out} helpers out` : detail
     const caption = (
-      <Text bold color={CRAB}>
+      <Text bold color={crabColor}>
         {CAPTION[mode]}
         {mode !== 'idle' && mode !== 'sleeping' && elapsed >= 2 ? (
           <Text dimColor> {elapsed}s</Text>
@@ -331,7 +429,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="row">
           {caption}
-          {detail ? <Text dimColor> {short(detail, e.props.bodyColumns - 24)}</Text> : null}
+          {what ? <Text dimColor> {short(what, e.props.bodyColumns - 24)}</Text> : null}
         </Box>
       )
     }
@@ -344,7 +442,7 @@ export const register: Register = on => {
       <Box flexDirection="row">
         <Box flexDirection="column">
           {crab.map(row => (
-            <Text mono color={CRAB}>
+            <Text mono color={crabColor}>
               {row}
             </Text>
           ))}
@@ -356,14 +454,22 @@ export const register: Register = on => {
             </Text>
           ))}
         </Box>
-        <Box flexDirection="column">
-          <Box flexDirection="row">
-            {caption}
-            {look.bubble ? <Text dimColor>  {look.bubble}</Text> : null}
+        {showStatus ? (
+          <Box flexDirection="column">
+            <Box flexDirection="row">
+              {caption}
+              {look.bubble ? <Text dimColor>  {look.bubble}</Text> : null}
+            </Box>
+            <Text dimColor>{what ? short(what, room) : ' '}</Text>
+            <Text dimColor>
+              {running.size > 1 && mode !== 'delegating' ? `${running.size} tools at once` : ' '}
+            </Text>
           </Box>
-          <Text dimColor>{detail ? short(detail, room) : ' '}</Text>
-          <Text dimColor>{running.size > 1 ? `${running.size} tools at once` : ' '}</Text>
-        </Box>
+        ) : (
+          <Box flexDirection="column">
+            <Text dimColor>{look.bubble || ' '}</Text>
+          </Box>
+        )}
       </Box>
     )
   })

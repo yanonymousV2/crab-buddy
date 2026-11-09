@@ -1,7 +1,45 @@
 {
   "name": "crab-buddy",
-  "version": "0.1.0",
-  "description": "An animated Claude crab that sits above the prompt and acts out what Claude is doing: thinking, reading, editing, running, and more",
-  "author": { "name": "yanonymousV2" },
-  "license": "MIT"
+  "version": "0.2.0",
+  "description": "An animated Claude crab that sits above the prompt and acts out what Claude is doing: thinking, reading, editing, running, waiting for you, and more",
+  "author": {
+    "name": "yanonymousV2"
+  },
+  "license": "MIT",
+  "userConfig": {
+    "color": {
+      "type": "string",
+      "title": "Crab color",
+      "description": "The crab's color",
+      "options": [
+        "orange",
+        "blue",
+        "green",
+        "purple",
+        "pink"
+      ],
+      "default": "orange"
+    },
+    "sleepAfterSeconds": {
+      "type": "number",
+      "title": "Doze off after (seconds)",
+      "description": "How long the crab stays idle before falling asleep",
+      "default": 90
+    },
+    "showStatus": {
+      "type": "boolean",
+      "title": "Show status text",
+      "description": "Show what Claude is doing beside the crab, or just the crab",
+      "default": true
+    }
+  },
+  "homepage": "https://yanonymousv2.github.io/yeshasvi/crab-buddy/",
+  "repository": "https://github.com/yanonymousV2/crab-buddy",
+  "keywords": [
+    "claude-code",
+    "mascot",
+    "status",
+    "fun",
+    "terminal"
+  ]
 }

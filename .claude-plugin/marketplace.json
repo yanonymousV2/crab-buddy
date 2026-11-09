@@ -1,5 +1,6 @@
 {
   "name": "crab-buddy",
   "owner": { "name": "yanonymousV2" },
+  "metadata": { "description": "Clawd, Claude Code's mascot, above your prompt, acting out what Claude is doing" },
   "plugins": [{ "name": "crab-buddy", "source": "./" }]
 }
